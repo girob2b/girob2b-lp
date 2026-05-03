@@ -10,4 +10,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // Porta fixa 5173. `VITE_PORT` permite override quando 5173 não puder
+  // ser liberada (ex.: outro processo persistente).
+  server: {
+    port: Number(process.env.VITE_PORT) || 5173,
+    strictPort: true,
+  },
 })

@@ -25,6 +25,10 @@ Thumbs.db
 # TypeScript cache
 *.tsbuildinfo
 
-# UX audit artefacts (root-level screenshots + Playwright MCP snapshots)
+# Test/QA artefacts
+# - Screenshots ficam em tests/screenshots/ (organizado por viewport)
+# - Bloqueamos PNGs que escaparem pro root e snapshots transient do Playwright MCP
 /*.png
 /.playwright-mcp/
+tests/screenshots/**/*.diff.png
+tests/screenshots/**/_tmp/
