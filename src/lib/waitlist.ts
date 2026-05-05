@@ -29,41 +29,56 @@ function readUTMs() {
 export async function submitSupplier(payload: WaitlistSupplierPayload): Promise<{ ok: boolean; error?: string }> {
   try {
     const { error } = await supabase
-      .from('waitlist_suppliers')
+      .from('waitlist')
       .insert({
-        ...payload,
+        role: 'supplier',
+        email: payload.email.toLowerCase().trim(),
+        cnpj: payload.cnpj,
+        category: payload.category,
+        consent_marketing: payload.consent_marketing,
+        source: payload.source,
         ...readUTMs(),
-        user_agent: navigator.userAgent,
+        user_agent: navigator.userAgent.slice(0, 500),
       });
 
     if (error) {
-      // Código 23505 = unique violation (email+cnpj já existe)
       if (error.code === '23505') {
         return { ok: false, error: 'Esse CNPJ+email já está na lista de espera. Tudo certo, vamos te avisar.' };
       }
-      trackEvent('waitlist_supplier_error', { message: error.message });
+      trackEvent('waitlist_supplier_error', { code: error.code ?? 'unknown' });
       return { ok: false, error: 'Erro ao enviar. Tente novamente em alguns segundos.' };
     }
 
     trackEvent('waitlist_supplier_submit', { source: payload.source, category: payload.category });
     return { ok: true };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Erro desconhecido';
-    trackEvent('waitlist_supplier_error', { message: msg });
+  } catch {
+    trackEvent('waitlist_supplier_error', { code: 'network' });
     return { ok: false, error: 'Erro de conexão. Verifique sua internet e tente novamente.' };
   }
 }
 
 export async function submitEnterprise(payload: WaitlistEnterprisePayload): Promise<{ ok: boolean; error?: string }> {
   try {
-    const { error } = await supabase.from('waitlist_enterprise').insert(payload);
+    const { error } = await supabase.from('waitlist').insert({
+      role: 'enterprise',
+      email: payload.email.toLowerCase().trim(),
+      name: payload.name,
+      company: payload.company,
+      estimated_volume: payload.estimated_volume,
+      message: payload.message,
+    });
+
     if (error) {
+      if (error.code === '23505') {
+        return { ok: false, error: 'Esse email já está cadastrado. Entraremos em contato em breve.' };
+      }
       trackEvent('enterprise_contact_submit', { status: 'error' });
       return { ok: false, error: 'Erro ao enviar. Tente novamente em alguns segundos.' };
     }
+
     trackEvent('enterprise_contact_submit', { status: 'success' });
     return { ok: true };
-  } catch (e) {
+  } catch {
     return { ok: false, error: 'Erro de conexão. Verifique sua internet e tente novamente.' };
   }
 }
