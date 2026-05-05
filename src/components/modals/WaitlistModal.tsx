@@ -111,8 +111,8 @@ export function WaitlistModal({ open, onClose, source }: Props) {
                   value={cnpj}
                   onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
                   placeholder="00.000.000/0000-00"
-                  maxLength={18}
-                  required
+                  inputMode="numeric"
+                  autoComplete="off"
                   className="w-full px-3 py-2 border border-graphite-soft rounded text-graphite placeholder:text-graphite-soft/70 focus:outline-none focus:ring-2 focus:ring-teal-deep"
                 />
                 {errors.cnpj && <p className="text-sm text-red-600 mt-1">{errors.cnpj}</p>}
