@@ -3,6 +3,7 @@
 type EventName =
   | 'waitlist_supplier_open'
   | 'waitlist_supplier_submit'
+  | 'waitlist_supplier_duplicate'
   | 'waitlist_supplier_error'
   | 'enterprise_contact_open'
   | 'enterprise_contact_submit'

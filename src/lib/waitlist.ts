@@ -31,7 +31,11 @@ function readUTMs() {
   };
 }
 
-export async function submitSupplier(payload: WaitlistSupplierPayload): Promise<{ ok: boolean; error?: string }> {
+export type SubmitSupplierResult =
+  | { ok: true; status: 'created' | 'already_exists' }
+  | { ok: false; error: string };
+
+export async function submitSupplier(payload: WaitlistSupplierPayload): Promise<SubmitSupplierResult> {
   try {
     const { error } = await supabase
       .from('waitlist')
@@ -47,15 +51,20 @@ export async function submitSupplier(payload: WaitlistSupplierPayload): Promise<
       });
 
     if (error) {
+      // 23505 = unique_violation. Tratamos como "já está na lista" — não é erro
+      // de UX: queremos guiar o user pelo caminho certo (comprador acessa, vendedor
+      // aguarda). Decisão de produto 2026-05-15: evitar mensagem de erro
+      // vermelha; mostrar modal informativo com CTA apropriado por role.
       if (error.code === '23505') {
-        return { ok: false, error: 'Esse CNPJ+email já está na lista. Tudo certo, vamos te avisar.' };
+        trackEvent('waitlist_supplier_duplicate', { role: payload.role });
+        return { ok: true, status: 'already_exists' };
       }
       trackEvent('waitlist_supplier_error', { code: error.code ?? 'unknown' });
       return { ok: false, error: 'Erro ao enviar. Tente novamente em alguns segundos.' };
     }
 
     trackEvent('waitlist_supplier_submit', { source: payload.source, category: payload.category });
-    return { ok: true };
+    return { ok: true, status: 'created' };
   } catch {
     trackEvent('waitlist_supplier_error', { code: 'network' });
     return { ok: false, error: 'Erro de conexão. Verifique sua internet e tente novamente.' };

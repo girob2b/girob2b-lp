@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { validateCNPJ, validateEmail, formatCNPJ } from '@/lib/validators';
-import { submitSupplier, type WaitlistRole, type WaitlistSupplierPayload } from '@/lib/waitlist';
+import { submitSupplier, type SubmitSupplierResult, type WaitlistRole, type WaitlistSupplierPayload } from '@/lib/waitlist';
 import { CategoryDropdown } from '@/components/ui/CategoryDropdown';
 import { type Category } from '@/data/categories';
 import { trackEvent } from '@/lib/analytics';
+import { WaitlistResultModal, type WaitlistResultVariant } from './WaitlistResultModal';
 
 type Props = {
   open: boolean;
@@ -21,7 +22,7 @@ export function WaitlistModal({ open, onClose, source }: Props) {
   const [category, setCategory] = useState<Category | ''>('');
   const [consentMarketing, setConsentMarketing] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; error?: string } | null>(null);
+  const [result, setResult] = useState<SubmitSupplierResult | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   if (!open) return null;
@@ -55,69 +56,22 @@ export function WaitlistModal({ open, onClose, source }: Props) {
     setSubmitting(false);
   }
 
-  // ── Após sucesso ────────────────────────────────────────────────────────
+  // ── Após sucesso (ou já existia) ────────────────────────────────────────
+  // 4 cenários, 1 modal moldável: (role × status) decide texto + CTA.
   if (result?.ok) {
-    // Comprador: levamos direto pro cadastro do app (acesso liberado).
-    if (role === 'buyer') {
-      return (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 bg-graphite/70 flex items-center justify-center p-4"
-          onClick={onClose}
-        >
-          <div
-            className="bg-white rounded-lg max-w-md w-full p-6 md:p-8 text-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-2xl font-bold text-teal-deep mb-3">Tudo certo! Acesse agora</h2>
-            <p className="text-graphite mb-6">
-              Como comprador, você tem acesso imediato à plataforma — pode publicar suas necessidades
-              de compra em segundos. Enviamos um email de confirmação para <strong>{email}</strong>.
-            </p>
-            <div className="flex flex-col gap-2">
-              <a
-                href={`${APP_URL}/cadastro?email=${encodeURIComponent(email)}`}
-                className="px-6 py-3 bg-teal-deep text-white rounded hover:bg-teal-deep/90 font-bold"
-              >
-                Ir para a plataforma →
-              </a>
-              <button
-                onClick={onClose}
-                className="px-6 py-2 text-graphite-soft hover:text-graphite text-sm"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
-    // Vendedor: fica em waitlist até aprovação.
+    const variant: WaitlistResultVariant =
+      role === 'buyer'
+        ? result.status === 'already_exists' ? 'buyer_already_exists' : 'buyer_created'
+        : result.status === 'already_exists' ? 'supplier_already_exists' : 'supplier_created';
+
     return (
-      <div
-        role="dialog"
-        aria-modal="true"
-        className="fixed inset-0 z-50 bg-graphite/70 flex items-center justify-center p-4"
-        onClick={onClose}
-      >
-        <div
-          className="bg-white rounded-lg max-w-md w-full p-6 md:p-8 text-center"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <h2 className="text-2xl font-bold text-teal-deep mb-3">Você está na lista de espera</h2>
-          <p className="text-graphite mb-6">
-            Estamos abrindo a plataforma pra vendedores aos poucos. Vamos avaliar seu cadastro e
-            enviar o link de acesso para <strong>{email}</strong> em breve.
-          </p>
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-gold-burnt text-graphite rounded hover:bg-gold-soft font-bold"
-          >
-            Fechar
-          </button>
-        </div>
-      </div>
+      <WaitlistResultModal
+        open
+        onClose={onClose}
+        variant={variant}
+        email={email.trim().toLowerCase()}
+        appUrl={APP_URL}
+      />
     );
   }
 
