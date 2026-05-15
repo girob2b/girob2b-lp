@@ -1,7 +1,12 @@
 import { supabase } from './supabase';
 import { trackEvent } from './analytics';
 
+export type WaitlistRole = 'buyer' | 'supplier';
+
 export type WaitlistSupplierPayload = {
+  /** "buyer" libera acesso imediato à plataforma; "supplier" fica em waitlist
+   *  até aprovação manual do admin (decisão de produto 2026-05-14). */
+  role: WaitlistRole;
   email: string;
   cnpj: string;
   category: string;
@@ -31,7 +36,7 @@ export async function submitSupplier(payload: WaitlistSupplierPayload): Promise<
     const { error } = await supabase
       .from('waitlist')
       .insert({
-        role: 'supplier',
+        role: payload.role,
         email: payload.email.toLowerCase().trim(),
         cnpj: payload.cnpj,
         category: payload.category,
@@ -43,7 +48,7 @@ export async function submitSupplier(payload: WaitlistSupplierPayload): Promise<
 
     if (error) {
       if (error.code === '23505') {
-        return { ok: false, error: 'Esse CNPJ+email já está na lista de espera. Tudo certo, vamos te avisar.' };
+        return { ok: false, error: 'Esse CNPJ+email já está na lista. Tudo certo, vamos te avisar.' };
       }
       trackEvent('waitlist_supplier_error', { code: error.code ?? 'unknown' });
       return { ok: false, error: 'Erro ao enviar. Tente novamente em alguns segundos.' };

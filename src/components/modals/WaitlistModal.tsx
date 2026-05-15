@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { validateCNPJ, validateEmail, formatCNPJ } from '@/lib/validators';
-import { submitSupplier, type WaitlistSupplierPayload } from '@/lib/waitlist';
+import { submitSupplier, type WaitlistRole, type WaitlistSupplierPayload } from '@/lib/waitlist';
 import { CategoryDropdown } from '@/components/ui/CategoryDropdown';
 import { type Category } from '@/data/categories';
 import { trackEvent } from '@/lib/analytics';
@@ -11,7 +11,11 @@ type Props = {
   source: WaitlistSupplierPayload['source'];
 };
 
+// URL do app principal — comprador é redirecionado pra completar cadastro lá.
+const APP_URL = (import.meta.env.VITE_APP_URL ?? 'https://app.girob2b.com.br').replace(/\/$/, '');
+
 export function WaitlistModal({ open, onClose, source }: Props) {
+  const [role, setRole] = useState<WaitlistRole>('buyer');
   const [email, setEmail] = useState('');
   const [cnpj, setCnpj] = useState('');
   const [category, setCategory] = useState<Category | ''>('');
@@ -39,6 +43,7 @@ export function WaitlistModal({ open, onClose, source }: Props) {
     setSubmitting(true);
 
     const res = await submitSupplier({
+      role,
       email: email.trim(),
       cnpj: cnpj.replace(/\D/g, ''),
       category: category as string,
@@ -50,6 +55,73 @@ export function WaitlistModal({ open, onClose, source }: Props) {
     setSubmitting(false);
   }
 
+  // ── Após sucesso ────────────────────────────────────────────────────────
+  if (result?.ok) {
+    // Comprador: levamos direto pro cadastro do app (acesso liberado).
+    if (role === 'buyer') {
+      return (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-graphite/70 flex items-center justify-center p-4"
+          onClick={onClose}
+        >
+          <div
+            className="bg-white rounded-lg max-w-md w-full p-6 md:p-8 text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-2xl font-bold text-teal-deep mb-3">Tudo certo! Acesse agora</h2>
+            <p className="text-graphite mb-6">
+              Como comprador, você tem acesso imediato à plataforma — pode publicar suas necessidades
+              de compra em segundos. Enviamos um email de confirmação para <strong>{email}</strong>.
+            </p>
+            <div className="flex flex-col gap-2">
+              <a
+                href={`${APP_URL}/cadastro?email=${encodeURIComponent(email)}`}
+                className="px-6 py-3 bg-teal-deep text-white rounded hover:bg-teal-deep/90 font-bold"
+              >
+                Ir para a plataforma →
+              </a>
+              <button
+                onClick={onClose}
+                className="px-6 py-2 text-graphite-soft hover:text-graphite text-sm"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    // Vendedor: fica em waitlist até aprovação.
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="fixed inset-0 z-50 bg-graphite/70 flex items-center justify-center p-4"
+        onClick={onClose}
+      >
+        <div
+          className="bg-white rounded-lg max-w-md w-full p-6 md:p-8 text-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h2 className="text-2xl font-bold text-teal-deep mb-3">Você está na lista de espera</h2>
+          <p className="text-graphite mb-6">
+            Estamos abrindo a plataforma pra vendedores aos poucos. Vamos avaliar seu cadastro e
+            enviar o link de acesso para <strong>{email}</strong> em breve.
+          </p>
+          <button
+            onClick={onClose}
+            className="px-6 py-2 bg-gold-burnt text-graphite rounded hover:bg-gold-soft font-bold"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Form ────────────────────────────────────────────────────────────────
   return (
     <div
       role="dialog"
@@ -62,99 +134,137 @@ export function WaitlistModal({ open, onClose, source }: Props) {
         className="bg-white rounded-lg max-w-md w-full p-6 md:p-8"
         onClick={(e) => e.stopPropagation()}
       >
-        {result?.ok ? (
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-teal-deep mb-3">Você está na lista</h2>
-            <p className="text-graphite mb-6">
-              Enviaremos um email de confirmação para <strong>{email}</strong>. Avisaremos você por email assim que a plataforma abrir.
-            </p>
-            <button
-              onClick={onClose}
-              className="px-6 py-2 bg-gold-burnt text-graphite rounded hover:bg-gold-soft font-bold"
-            >
-              Fechar
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={onSubmit} noValidate>
-            <h2 id="waitlist-title" className="text-2xl font-bold text-teal-deep mb-2">
-              Entrar na lista de espera
-            </h2>
-            <p className="text-sm text-graphite-soft mb-6">
-              Seremos os primeiros a avisar você quando a GiroB2B abrir pros primeiros fornecedores.
-            </p>
+        <form onSubmit={onSubmit} noValidate>
+          <h2 id="waitlist-title" className="text-2xl font-bold text-teal-deep mb-2">
+            Entrar na GiroB2B
+          </h2>
+          <p className="text-sm text-graphite-soft mb-6">
+            Compradores entram direto. Vendedores ficam na lista de espera até aprovação do time.
+          </p>
 
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="wl-email" className="block text-sm font-medium text-graphite mb-1">
-                  Email corporativo <span className="text-gold-burnt">*</span>
+          <div className="space-y-4">
+            {/* Quero entrar como */}
+            <fieldset>
+              <legend className="block text-sm font-medium text-graphite mb-2">
+                Quero entrar como <span className="text-gold-burnt">*</span>
+              </legend>
+              <div className="grid grid-cols-2 gap-2">
+                <label
+                  className={`flex flex-col items-start gap-1 rounded-lg border-2 p-3 cursor-pointer transition ${
+                    role === 'buyer'
+                      ? 'border-teal-deep bg-teal-deep/5'
+                      : 'border-graphite-soft/30 hover:border-graphite-soft'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="role"
+                    value="buyer"
+                    checked={role === 'buyer'}
+                    onChange={() => setRole('buyer')}
+                    className="sr-only"
+                  />
+                  <span className="font-bold text-graphite">Comprador</span>
+                  <span className="text-xs text-graphite-soft">
+                    Quero publicar minhas necessidades e receber propostas
+                  </span>
                 </label>
-                <input
-                  id="wl-email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  placeholder="seu@empresa.com.br"
-                  className="w-full px-3 py-2 border border-graphite-soft rounded text-graphite placeholder:text-graphite-soft/70 focus:outline-none focus:ring-2 focus:ring-teal-deep"
-                />
-                {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email}</p>}
-              </div>
-
-              <div>
-                <label htmlFor="wl-cnpj" className="block text-sm font-medium text-graphite mb-1">
-                  CNPJ <span className="text-gold-burnt">*</span>
+                <label
+                  className={`flex flex-col items-start gap-1 rounded-lg border-2 p-3 cursor-pointer transition ${
+                    role === 'supplier'
+                      ? 'border-teal-deep bg-teal-deep/5'
+                      : 'border-graphite-soft/30 hover:border-graphite-soft'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="role"
+                    value="supplier"
+                    checked={role === 'supplier'}
+                    onChange={() => setRole('supplier')}
+                    className="sr-only"
+                  />
+                  <span className="font-bold text-graphite">Vendedor</span>
+                  <span className="text-xs text-graphite-soft">
+                    Quero contatar compradores e vender meus produtos
+                  </span>
                 </label>
-                <input
-                  id="wl-cnpj"
-                  type="text"
-                  value={cnpj}
-                  onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
-                  placeholder="00.000.000/0000-00"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  className="w-full px-3 py-2 border border-graphite-soft rounded text-graphite placeholder:text-graphite-soft/70 focus:outline-none focus:ring-2 focus:ring-teal-deep"
-                />
-                {errors.cnpj && <p className="text-sm text-red-600 mt-1">{errors.cnpj}</p>}
               </div>
+            </fieldset>
 
-              <div>
-                <CategoryDropdown value={category} onChange={setCategory} required id="wl-category" />
-                {errors.category && <p className="text-sm text-red-600 mt-1">{errors.category}</p>}
-              </div>
-
-              <label className="flex items-start gap-2 text-sm text-graphite-soft">
-                <input
-                  type="checkbox"
-                  checked={consentMarketing}
-                  onChange={(e) => setConsentMarketing(e.target.checked)}
-                  className="mt-1"
-                />
-                <span>Quero receber emails sobre o lançamento e novidades da GiroB2B. Posso cancelar a qualquer momento.</span>
+            <div>
+              <label htmlFor="wl-email" className="block text-sm font-medium text-graphite mb-1">
+                Email corporativo <span className="text-gold-burnt">*</span>
               </label>
-
-              {result?.error && <p className="text-sm text-red-600">{result.error}</p>}
-
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 px-4 py-2 border border-graphite-soft rounded text-graphite font-medium hover:bg-offwhite transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-gold-burnt text-graphite rounded hover:bg-gold-soft font-bold disabled:opacity-50"
-                  onClick={() => trackEvent('waitlist_supplier_open', { source })}
-                >
-                  {submitting ? 'Enviando...' : 'Entrar na lista'}
-                </button>
-              </div>
+              <input
+                id="wl-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="seu@empresa.com.br"
+                className="w-full px-3 py-2 border border-graphite-soft rounded text-graphite placeholder:text-graphite-soft/70 focus:outline-none focus:ring-2 focus:ring-teal-deep"
+              />
+              {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email}</p>}
             </div>
-          </form>
-        )}
+
+            <div>
+              <label htmlFor="wl-cnpj" className="block text-sm font-medium text-graphite mb-1">
+                CNPJ <span className="text-gold-burnt">*</span>
+              </label>
+              <input
+                id="wl-cnpj"
+                type="text"
+                value={cnpj}
+                onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
+                placeholder="00.000.000/0000-00"
+                inputMode="numeric"
+                autoComplete="off"
+                className="w-full px-3 py-2 border border-graphite-soft rounded text-graphite placeholder:text-graphite-soft/70 focus:outline-none focus:ring-2 focus:ring-teal-deep"
+              />
+              {errors.cnpj && <p className="text-sm text-red-600 mt-1">{errors.cnpj}</p>}
+            </div>
+
+            <div>
+              <CategoryDropdown value={category} onChange={setCategory} required id="wl-category" />
+              {errors.category && <p className="text-sm text-red-600 mt-1">{errors.category}</p>}
+            </div>
+
+            <label className="flex items-start gap-2 text-sm text-graphite-soft">
+              <input
+                type="checkbox"
+                checked={consentMarketing}
+                onChange={(e) => setConsentMarketing(e.target.checked)}
+                className="mt-1"
+              />
+              <span>Quero receber emails sobre o lançamento e novidades da GiroB2B. Posso cancelar a qualquer momento.</span>
+            </label>
+
+            {result?.error && <p className="text-sm text-red-600">{result.error}</p>}
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2 border border-graphite-soft rounded text-graphite font-medium hover:bg-offwhite transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="flex-1 px-4 py-2 bg-gold-burnt text-graphite rounded hover:bg-gold-soft font-bold disabled:opacity-50"
+                onClick={() => trackEvent('waitlist_supplier_open', { source })}
+              >
+                {submitting
+                  ? 'Enviando...'
+                  : role === 'buyer'
+                    ? 'Quero comprar'
+                    : 'Entrar na lista'}
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   );

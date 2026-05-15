@@ -8,61 +8,11 @@ type Props = {
 };
 
 export function PricingCard({ tier, billing, onCtaClick }: Props) {
-  const isEnterprise = tier.id === 'enterprise';
   const isPro = tier.highlighted === true;
-  const isStarter = tier.id === 'starter';
-
-  const price =
-    billing === 'monthly' ? tier.priceMonthly : tier.priceAnnual ? Math.round(tier.priceAnnual / 12) : null;
-
+  const price = billing === 'monthly' ? tier.priceMonthly : Math.round(tier.priceAnnual / 12);
   const periodLabel = billing === 'monthly' ? '/mês' : '/mês cobrado anualmente';
 
-  // --- Enterprise dark card ---
-  if (isEnterprise) {
-    return (
-      <div
-        className="rounded-xl p-7 flex flex-col"
-        style={{
-          background: '#1A1F1F',
-          border: '1px solid rgba(192, 138, 46, 0.35)',
-        }}
-      >
-        <h3 className="font-sans font-bold text-xl text-offwhite mb-2">{tier.name}</h3>
-
-        <div className="mb-6">
-          <p className="font-sans font-bold text-2xl text-gold-soft leading-tight">Sob consulta</p>
-          <p className="text-xs text-offwhite/40 mt-1 tracking-wide uppercase">Pricing personalizado</p>
-        </div>
-
-        <ul className="space-y-2.5 mb-7 flex-1">
-          {tier.features.map((f) => (
-            <li key={f} className="text-sm flex items-start gap-2.5 text-offwhite/80">
-              <IconCheck
-                size={16}
-                strokeWidth={2}
-                className="flex-shrink-0 mt-0.5"
-                style={{ color: '#D4A04A' } as React.CSSProperties}
-              />
-              <span>{f}</span>
-            </li>
-          ))}
-        </ul>
-
-        <button
-          onClick={onCtaClick}
-          className="w-full py-3.5 rounded-lg font-sans font-bold text-sm transition-all hover:brightness-110 active:scale-95"
-          style={{
-            background: 'linear-gradient(135deg, #C08A2E 0%, #D4A04A 100%)',
-            color: '#1A1F1F',
-          }}
-        >
-          {tier.ctaLabel}
-        </button>
-      </div>
-    );
-  }
-
-  // --- Pro highlighted card ---
+  // ── Pro: card destacado ─────────────────────────────────────────────
   if (isPro) {
     return (
       <div
@@ -73,7 +23,6 @@ export function PricingCard({ tier, billing, onCtaClick }: Props) {
           boxShadow: '0 20px 60px -15px rgba(192, 138, 46, 0.35)',
         }}
       >
-        {/* Editorial "Mais popular" badge */}
         <div
           className="absolute -top-px left-1/2 -translate-x-1/2 px-4 py-1"
           style={{
@@ -122,55 +71,10 @@ export function PricingCard({ tier, billing, onCtaClick }: Props) {
     );
   }
 
-  // --- Starter minimal card ---
-  if (isStarter) {
-    return (
-      <div
-        className="rounded-xl p-7 flex flex-col shadow-sm"
-        style={{
-          background: '#FFFFFF',
-          border: '1px solid rgba(26, 31, 31, 0.10)',
-        }}
-      >
-        <h3 className="font-sans font-bold text-xl text-teal-deep mb-2">{tier.name}</h3>
-
-        <div className="mb-5">
-          <span className="font-sans font-black text-4xl text-graphite">R$ {price}</span>
-          <span className="text-sm text-graphite/50 ml-1.5">{periodLabel}</span>
-        </div>
-
-        <ul className="space-y-2.5 mb-7 flex-1">
-          {tier.features.map((f) => (
-            <li key={f} className="text-sm flex items-start gap-2.5 text-graphite">
-              <IconCheck
-                size={16}
-                strokeWidth={2}
-                className="flex-shrink-0 mt-0.5"
-                style={{ color: '#0A5C5C' } as React.CSSProperties}
-              />
-              <span>{f}</span>
-            </li>
-          ))}
-        </ul>
-
-        <button
-          onClick={onCtaClick}
-          className="w-full py-3.5 rounded-lg font-sans font-medium text-sm transition-all hover:bg-teal-mid active:scale-95"
-          style={{
-            background: '#0A5C5C',
-            color: '#F4F1EA',
-          }}
-        >
-          {tier.ctaLabel}
-        </button>
-      </div>
-    );
-  }
-
-  // --- Premium card (default) ---
+  // ── Start: card minimal ────────────────────────────────────────────
   return (
     <div
-      className="rounded-xl p-7 flex flex-col shadow-md"
+      className="rounded-xl p-7 flex flex-col shadow-sm"
       style={{
         background: '#FFFFFF',
         border: '1px solid rgba(26, 31, 31, 0.10)',

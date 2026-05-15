@@ -2,21 +2,14 @@ import { useState } from 'react';
 import { PRICING_TIERS } from '@/data/pricingTiers';
 import { PricingCard } from '@/components/ui/PricingCard';
 import { WaitlistModal } from '@/components/modals/WaitlistModal';
-import { EnterpriseModal } from '@/components/modals/EnterpriseModal';
 import { trackEvent } from '@/lib/analytics';
 
 export function PricingSection() {
   const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly');
   const [waitlistOpen, setWaitlistOpen] = useState(false);
-  const [enterpriseOpen, setEnterpriseOpen] = useState(false);
 
-  function handleCta(tierId: string) {
-    if (tierId === 'enterprise') {
-      setEnterpriseOpen(true);
-      trackEvent('enterprise_contact_open');
-    } else {
-      setWaitlistOpen(true);
-    }
+  function handleCta(_tierId: string) {
+    setWaitlistOpen(true);
   }
 
   function toggleBilling(next: 'monthly' | 'annual') {
@@ -99,8 +92,8 @@ export function PricingSection() {
           </div>
         </div>
 
-        {/* Cards grid — extra vertical padding so scale-105 Pro card has room */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-4 py-6">
+        {/* Cards grid — 2 colunas; Pro destacado com scale-105 */}
+        <div className="grid md:grid-cols-2 gap-5 md:gap-6 py-6 max-w-3xl mx-auto">
           {PRICING_TIERS.map((tier) => (
             <PricingCard key={tier.id} tier={tier} billing={billing} onCtaClick={() => handleCta(tier.id)} />
           ))}
@@ -108,7 +101,6 @@ export function PricingSection() {
       </div>
 
       <WaitlistModal open={waitlistOpen} onClose={() => setWaitlistOpen(false)} source="landing_pricing" />
-      <EnterpriseModal open={enterpriseOpen} onClose={() => setEnterpriseOpen(false)} />
     </section>
   );
 }
