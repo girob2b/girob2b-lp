@@ -49,7 +49,12 @@ export function WaitlistResultModal({
 }: WaitlistResultModalProps) {
   if (!open) return null;
 
-  const postarUrl = `${appUrl}/postar?email=${encodeURIComponent(email)}`;
+  const emailParam = encodeURIComponent(email);
+  // Comprador novo → /postar com modal de cadastro aberto por cima (auth=register).
+  // Pode criar conta agora ou pular pelo botão dentro do modal.
+  const postarWithSignupUrl = `${appUrl}/postar?email=${emailParam}&auth=register`;
+  // Comprador recorrente → /login. Pode logar, criar conta ou pular pra publicar.
+  const loginUrl = `${appUrl}/login?email=${emailParam}`;
   const supportMailto = `mailto:${supportEmail}?subject=${encodeURIComponent(
     'Sou vendedor — dúvidas sobre minha posição na lista de espera',
   )}&body=${encodeURIComponent(
@@ -58,25 +63,26 @@ export function WaitlistResultModal({
 
   const configs: Record<WaitlistResultVariant, VariantConfig> = {
     buyer_created: {
-      title: 'Tudo certo! Vamos publicar',
+      title: 'Tudo certo! Vamos te cadastrar',
       body: (
         <>
-          Como comprador, você publica direto — sem precisar criar conta. Vamos te levar pro
-          formulário com seu email já preenchido.
+          Te levamos pro formulário de publicação com a opção de criar sua conta — assim você
+          consegue gerenciar suas necessidades depois. Prefere pular? Dá pra publicar sem cadastro
+          mesmo.
         </>
       ),
-      primary: { label: 'Publicar minha necessidade →', href: postarUrl, external: true },
+      primary: { label: 'Continuar →', href: postarWithSignupUrl, external: true },
       tone: 'teal',
     },
     buyer_already_exists: {
-      title: 'Você já pode acessar a plataforma',
+      title: 'Você já tem cadastro com a gente',
       body: (
         <>
-          O email <strong>{email}</strong> já está na nossa base. Como comprador, você não precisa
-          de senha nem cadastro pra publicar — clica abaixo e segue direto.
+          O email <strong>{email}</strong> já está na nossa base. Faça login pra ver suas
+          necessidades publicadas — ou pule e publique uma nova direto.
         </>
       ),
-      primary: { label: 'Acessar a plataforma →', href: postarUrl, external: true },
+      primary: { label: 'Fazer login →', href: loginUrl, external: true },
       tone: 'teal',
     },
     supplier_created: {
