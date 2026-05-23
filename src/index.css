@@ -1,3 +1,8 @@
+/* Fonte de verdade unica de tokens (cor/space/type/radius/shadow/motion/z).
+ * Auto-gerado por scripts/sync-design-tokens.sh — nao editar. */
+@import './styles/design-tokens.css';
+/* Aliases locais — mantidos pra nao quebrar HeroV2/sections existentes que usam
+ * --color-teal-deep, --color-gold-burnt, etc. Veja styles/tokens.css. */
 @import './styles/tokens.css';
 @import 'tailwindcss';
 
