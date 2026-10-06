@@ -12,9 +12,6 @@ type Props = {
   source: WaitlistSupplierPayload['source'];
 };
 
-// URL do app principal — comprador é redirecionado pra completar cadastro lá.
-const APP_URL = (import.meta.env.VITE_APP_URL ?? 'https://app.girob2b.com.br').replace(/\/$/, '');
-
 export function WaitlistModal({ open, onClose, source }: Props) {
   const [role, setRole] = useState<WaitlistRole>('buyer');
   const [email, setEmail] = useState('');
@@ -70,7 +67,6 @@ export function WaitlistModal({ open, onClose, source }: Props) {
         onClose={onClose}
         variant={variant}
         email={email.trim().toLowerCase()}
-        appUrl={APP_URL}
       />
     );
   }
