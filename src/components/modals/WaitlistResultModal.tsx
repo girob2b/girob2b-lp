@@ -1,9 +1,9 @@
 import type { ReactNode } from 'react';
 
 export type WaitlistResultVariant =
-  /** Comprador novo — pode publicar direto. */
+  /** Comprador novo. Entra na lista de espera e é avisado por email quando a plataforma abrir. */
   | 'buyer_created'
-  /** Comprador que já mandou waitlist antes — manda pro app direto, sem novo cadastro. */
+  /** Comprador que já estava na lista. Só confirma que o email já está com a gente. */
   | 'buyer_already_exists'
   /** Vendedor novo — fica em waitlist até aprovação. */
   | 'supplier_created'
@@ -14,10 +14,8 @@ interface WaitlistResultModalProps {
   open: boolean;
   onClose: () => void;
   variant: WaitlistResultVariant;
-  /** Email do user — usado tanto pra prefill do /postar quanto pra exibir. */
+  /** Email do user, exibido na confirmação (e no corpo do contato do vendedor). */
   email: string;
-  /** URL do app principal (vem de VITE_APP_URL no chamador). */
-  appUrl: string;
   /** Email da equipe pra suporte. */
   supportEmail?: string;
 }
@@ -44,17 +42,10 @@ export function WaitlistResultModal({
   onClose,
   variant,
   email,
-  appUrl,
   supportEmail = 'comercial@girob2b.com.br',
 }: WaitlistResultModalProps) {
   if (!open) return null;
 
-  const emailParam = encodeURIComponent(email);
-  // Comprador novo → /postar com modal de cadastro aberto por cima (auth=register).
-  // Pode criar conta agora ou pular pelo botão dentro do modal.
-  const postarWithSignupUrl = `${appUrl}/postar?email=${emailParam}&auth=register`;
-  // Comprador recorrente → /login. Pode logar, criar conta ou pular pra publicar.
-  const loginUrl = `${appUrl}/login?email=${emailParam}`;
   const supportMailto = `mailto:${supportEmail}?subject=${encodeURIComponent(
     'Sou vendedor — dúvidas sobre minha posição na lista de espera',
   )}&body=${encodeURIComponent(
@@ -62,27 +53,28 @@ export function WaitlistResultModal({
   )}`;
 
   const configs: Record<WaitlistResultVariant, VariantConfig> = {
+    // Comprador: a plataforma ainda não abriu, então as 2 variantes só confirmam a lista
+    // de espera e fecham o modal. Nenhum link pro app.
     buyer_created: {
-      title: 'Tudo certo! Vamos te cadastrar',
+      title: 'Você está na lista!',
       body: (
         <>
-          Te levamos pro formulário de publicação com a opção de criar sua conta — assim você
-          consegue gerenciar suas necessidades depois. Prefere pular? Dá pra publicar sem cadastro
-          mesmo.
+          A plataforma GiroB2B está sendo preparada. Assim que abrir para compradores, avisamos
+          em <strong>{email}</strong> para você publicar sua primeira necessidade.
         </>
       ),
-      primary: { label: 'Continuar →', href: postarWithSignupUrl, external: true },
+      primary: { label: 'Fechar', href: '#close', external: false },
       tone: 'teal',
     },
     buyer_already_exists: {
-      title: 'Você já tem cadastro com a gente',
+      title: 'Você já está na lista',
       body: (
         <>
-          O email <strong>{email}</strong> já está na nossa base. Faça login pra ver suas
-          necessidades publicadas — ou pule e publique uma nova direto.
+          O e-mail <strong>{email}</strong> já está com a gente. Avisamos assim que a plataforma
+          abrir.
         </>
       ),
-      primary: { label: 'Fazer login →', href: loginUrl, external: true },
+      primary: { label: 'Fechar', href: '#close', external: false },
       tone: 'teal',
     },
     supplier_created: {
